@@ -84,10 +84,26 @@ async fn main() {
                                             .and_then(|arr| arr.iter().find(|token| token.get("token_id").and_then(|s| s.as_str()) == Some(&token_id)))
                                             .and_then(|_| m.get("market_slug").and_then(|s| s.as_str()).map(|s| s.to_string()))
                                     });
+                                // Convert bids and asks to JSON arrays
+                                let bids_json: Vec<_> = ob.bids.iter().map(|order| serde_json::json!({
+                                    "price": order.price,
+                                    "size": order.size
+                                })).collect();
+                                let asks_json: Vec<_> = ob.asks.iter().map(|order| serde_json::json!({
+                                    "price": order.price,
+                                    "size": order.size
+                                })).collect();
                                 serde_json::json!({
                                     "token_id": token_id,
                                     "market_slug": market_slug,
-                                    "order_book": format!("{:?}", ob)
+                                    "order_book": {
+                                        "market": ob.market,
+                                        "asset_id": ob.asset_id,
+                                        "hash": ob.hash,
+                                        "timestamp": ob.timestamp,
+                                        "bids": bids_json,
+                                        "asks": asks_json
+                                    }
                                 })
                             }).collect();
                             let value = serde_json::json!({
