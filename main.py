@@ -53,6 +53,7 @@ def main(log_file=None):
         for i in range(0, len(token_ids), chunk_size):
             chunk = token_ids[i:i+chunk_size]
             params = [BookParams(token_id=tid) for tid in chunk]
+            print(f"[{datetime.utcnow().isoformat()}] Requesting order books for token_ids {i+1}-{i+len(chunk)} of {len(token_ids)}")
             order_books = client.get_order_books(params=params)
             for ob in order_books:
                 token_id = getattr(ob, 'asset_id', None)
