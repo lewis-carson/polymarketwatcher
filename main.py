@@ -49,7 +49,13 @@ def main(log_file=None):
         chunk_size = 50
         request_date = datetime.utcnow().isoformat()
         lines = []
-        batch_start = time.time()
+        num_batches = (len(token_ids) + chunk_size - 1) // chunk_size
+        # Calculate pause to spread requests evenly over the interval
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--time', type=int, default=5)
+        args, _ = parser.parse_known_args()
+        interval = args.time
+        pause_per_batch = (interval * 60) / max(num_batches, 1)
         for i in range(0, len(token_ids), chunk_size):
             chunk = token_ids[i:i+chunk_size]
             params = [BookParams(token_id=tid) for tid in chunk]
@@ -67,12 +73,8 @@ def main(log_file=None):
                     "order_book": ob.__dict__
                 })
                 lines.append(line)
-            # Rate limit: no more than 50 requests every 10 seconds
-            if (i // chunk_size + 1) % 50 == 0:
-                elapsed = time.time() - batch_start
-                if elapsed < 10:
-                    time.sleep(10 - elapsed)
-                batch_start = time.time()
+            if pause_per_batch > 0 and i + chunk_size < len(token_ids):
+                time.sleep(pause_per_batch)
         if log_file:
             with open(log_file, 'a') as f:
                 for line in lines:
@@ -86,7 +88,6 @@ def main(log_file=None):
 def run_every_x_minutes(interval, log_file=None):
     while True:
         main(log_file=log_file)
-        time.sleep(interval * 60)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Polymarket order book fetcher")
